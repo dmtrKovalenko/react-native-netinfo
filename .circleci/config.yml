@@ -1,180 +1,5 @@
 version: 2.1
 
-aliases:
-  # -------------------------
-  #          CACHE
-  # -------------------------
-  - &restore-yarn-cache
-    key: v1-yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "yarn.lock" }}
-
-  - &save-yarn-cache
-    paths:
-      - ~/.cache/yarn
-      - ~/Library/Detox
-    key: v1-yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "yarn.lock" }}
-
-  # -------------------------
-  #            iOS
-  # -------------------------
-
-  - &save-ios-build-cache
-    paths:
-      - ~/project/example/ios/build/Build
-    key: v1-ios-build-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}
-    when: always
-
-  - &restore-ios-build-cache
-    key: v1-ios-build-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}
-
-  # -------------------------
-  #         Android
-  # -------------------------
-  - &save-gradle-home-caches
-    name: Saving Gradle home cache
-    paths:
-      - ~/.gradle/caches/
-    key: v1-gradle-home-cache-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}
-
-  - &restore-gradle-home-caches
-    keys:
-      - v1-gradle-home-cache-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}
-      - v1-gradle-home-cache
-
-  - &save-gradle-wrapper-cache
-    name: Saving Gradle wrapper cache
-    paths:
-      - ~/.gradle/wrapper/
-    key: v1-gradle-wrapper-{{ checksum "example/android/gradle/wrapper/gradle-wrapper.properties" }}
-
-  - &restore-gradle-wrapper-cache
-    keys:
-      - v1-gradle-wrapper-{{ checksum "example/android/gradle/wrapper/gradle-wrapper.properties" }}
-
-  - &collect-gradle-build-caches
-    name: Collecting Gradle Build caches for saving
-    command: |
-      mkdir -p ~/gradle-build-caches
-      [ -d ~/.gradle/caches ] &&
-        [ -n "$(ls -Ad ~/.gradle/caches/build-cache-* 2>/dev/null)" ] &&
-        rm -rf ~/gradle-build-caches/* &&
-        mv ~/.gradle/caches/build-cache-* ~/gradle-build-caches || true
-    when: always
-
-  - &save-gradle-debug-build-cache
-    name: Saving Gradle Build caches
-    paths:
-      - ~/gradle-build-caches
-    key: v1-gradle-debug-build-cache-{{ .Revision }}
-    when: always
-
-  - &save-gradle-release-build-cache
-    name: Saving Gradle Build caches
-    paths:
-      - ~/gradle-build-caches
-    key: v1-gradle-release-build-cache-{{ .Revision }}
-    when: always
-
-  - &disperse-gradle-build-caches
-    name: Dispersing Gradle Build caches for restoring
-    command: |
-      [ -d ~/gradle-build-caches ] &&
-        [ -n "$(ls -A ~/gradle-build-caches)" ] &&
-        rm -rf ~/.gradle/caches/build-cache-* &&
-        mkdir -p ~/.gradle/caches/ &&
-        mv ~/gradle-build-caches/* ~/.gradle/caches/ || true
-
-  - &restore-gradle-debug-build-cache
-    name: Restoring Gradle Build caches
-    keys:
-      - v1-gradle-debug-build-cache-{{ .Revision }}
-      - v1-gradle-debug-build-cache
-
-  - &restore-gradle-release-build-cache
-    name: Restoring Gradle Build caches
-    keys:
-      - v1-gradle-release-build-cache-{{ .Revision }}
-      - v1-gradle-release-build-cache
-
-
-  # -------------------------
-  #          DETOX
-  # -------------------------
-
-  - &save-brew-cache
-    paths:
-      - /usr/local/Homebrew
-      - ~/Library/Caches/Homebrew
-    key: v1-brew-cache-{{ arch }}
-
-  - &restore-brew-cache
-    keys:
-      - v1-brew-cache-{{ arch }}
-
-
-  # -------------------------
-  #    SHARED RUN COMMANDS
-  # -------------------------
-
-  - &configure-ios-detox-environment
-    name: Configure Detox Environment
-    command: |
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install node@8 >/dev/null
-      HOMEBREW_NO_AUTO_UPDATE=1 brew tap wix/brew >/dev/null
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install applesimutils >/dev/null
-      touch .watchmanconfig
-      node -v
-
-  - &make-cache-check-files
-    name: Make Cache Checksum Files
-    command: |
-      mkdir -p ~/.tmp
-      mkdir -p ~/.tmp/checksumfiles
-      find . -type f -name 'build.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/build.gradle
-      find . -type f -name 'settings.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/settings.gradle
-      find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
-
-  # -------------------------
-  #       INSTALLATION
-  # -------------------------
-  - &yarn
-    name: Yarn Install
-    command: |
-      yarn install --non-interactive --cache-folder ~/.cache/yarn
-
-  # -------------------------
-  #         ANALYSE
-  # -------------------------
-
-  # eslint
-  - &validate-eslint
-    name: Lint JS Code (ESLint)
-    command: yarn run validate:eslint
-
-  # typescript
-  - &validate-typescript
-    name: Validate TypeScript Declarations
-    command: yarn run validate:typescript
-
-  # flow
-  - &validate-flow
-    name: Validate Flow Declarations
-    command: yarn run validate:flow
-
-  # Jest
-  - &jest-tests
-    name: Run Jest Tests
-    command: yarn run test:jest
-
-  # JS Bundle - iOS
-  - &js-bundle-ios
-    name: Build iOS JavaScript Bundle
-    command: yarn run test:detox:ios:bundle:release
-
-  # JS Bundle - iOS
-  - &js-bundle-android
-    name: Build Android JavaScript Bundle
-    command: yarn run test:detox:android:bundle:release
-
 # -------------------------
 #        DEFAULTS
 # -------------------------
@@ -204,13 +29,16 @@ android_defaults: &android_defaults
     - GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+HeapDumpOnOutOfMemoryError -Xmx2048m"'
     - BUILD_THREADS: 2
 
-
 # IOS
 macos_defaults: &macos_defaults
   <<: *defaults
   resource_class: 'medium'
   macos:
     xcode: '10.1.0'
+
+# -------------------------
+#        ORBS
+# -------------------------
 
 orbs:
   react-native-community-test:
@@ -289,11 +117,16 @@ orbs:
           - setup_ios_simulator
           - yarn_install
           # TODO: Make this a command
-          - restore_cache: *restore-ios-build-cache
+          - restore_cache:
+              key: v1-ios-build-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}
           - run:
               name: Build iOS Testing App
               command: yarn run test:detox:ios:build:release
-          - save_cache: *save-ios-build-cache
+          - save_cache:
+              paths:
+                - ~/project/example/ios/build/Build
+              key: v1-ios-build-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}
+              when: always
 
           - run: mkdir ~/detox-artifacts
           # TODO: Make this a command
@@ -314,7 +147,14 @@ orbs:
     commands:
       setup_cache_check_files:
         steps:
-          - run: *make-cache-check-files
+          - run:
+              name: Make Cache Checksum Files
+              command: |
+                mkdir -p ~/.tmp
+                mkdir -p ~/.tmp/checksumfiles
+                find . -type f -name 'build.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/build.gradle
+                find . -type f -name 'settings.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/settings.gradle
+                find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
       setup_android_sdk:
         steps:
           - run:
@@ -374,9 +214,21 @@ orbs:
               command: |
                 echo 'export PATH="$PATH:/usr/local/opt/node@8/bin:~/.yarn/bin:~/project/node_modules/.bin:~/project/example/node_modules/.bin"' >> $BASH_ENV
                 source $BASH_ENV
-          - restore_cache: *restore-brew-cache
-          - run: *configure-ios-detox-environment
-          - save_cache: *save-brew-cache
+          - restore_cache:
+              key: v1-brew-cache-{{ arch }}
+          - run:
+              name: Configure Detox Environment
+              command: |
+                HOMEBREW_NO_AUTO_UPDATE=1 brew install node@8 >/dev/null
+                HOMEBREW_NO_AUTO_UPDATE=1 brew tap wix/brew >/dev/null
+                HOMEBREW_NO_AUTO_UPDATE=1 brew install applesimutils >/dev/null
+                touch .watchmanconfig
+                node -v
+          - save_cache:
+              paths:
+                - /usr/local/Homebrew
+                - ~/Library/Caches/Homebrew
+              key: v1-brew-cache-{{ arch }}
       setup_ios_simulator:
         steps:
           - run:
@@ -385,27 +237,46 @@ orbs:
               command: xcrun simctl boot "iPhone X" || true
       yarn_install:
         steps:
-          - restore_cache: *restore-yarn-cache
-          - run: *yarn
-          - save_cache: *save-yarn-cache
+          - restore_cache:
+              key: v1-yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "yarn.lock" }}
+          - run:
+              name: Yarn Install
+              command: yarn install --non-interactive --cache-folder ~/.cache/yarn
+          - save_cache:
+              paths:
+                - ~/.cache/yarn
+                - ~/Library/Detox
+              key: v1-yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "yarn.lock" }}
       validate_flow:
         steps:
-          - run: *validate-flow
+          - run:
+              name: Validate Flow Declarations
+              command: yarn run validate:flow
       validate_typescript:
         steps:
-          - run: *validate-typescript
+          - run:
+              name: Validate TypeScript Declarations
+              command: yarn run validate:typescript
       validate_eslint:
         steps:
-          - run: *validate-eslint
+          - run:
+              name: Lint JS Code (ESLint)
+              command: yarn run validate:eslint
       test_jest:
         steps:
-          - run: *jest-tests
+          - run:
+              name: Run Jest Tests
+              command: yarn run test:jest
       build_js_bundle_android:
         steps:
-          - run: *js-bundle-android
+          - run:
+              name: Build Android JavaScript Bundle
+              command: yarn run test:detox:android:bundle:release
       build_js_bundle_ios:
         steps:
-          - run: *js-bundle-ios
+          - run:
+              name: Build iOS JavaScript Bundle
+              command: yarn run test:detox:ios:bundle:release
       build_android_apk:
         parameters:
           project_path:
@@ -420,21 +291,57 @@ orbs:
             enum: ["debug", "release"]
             default: "debug"
         steps:
-          - restore_cache: *restore-gradle-wrapper-cache
-          - restore_cache: *restore-gradle-home-caches
-          - restore_cache: *restore-gradle-debug-build-cache
-          - run: *disperse-gradle-build-caches
+          - restore_cache:
+              key: v1-gradle-wrapper-{{ checksum "example/android/gradle/wrapper/gradle-wrapper.properties" }}
+          - restore_cache:
+              keys:
+                - v1-gradle-home-cache-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}
+                - v1-gradle-home-cache
+          - restore_cache:
+              name: Restoring Gradle Build caches
+              keys:
+                - v1-gradle-debug-build-cache-{{ .Revision }}
+                - v1-gradle-debug-build-cache
+          - run:
+              name: Dispersing Gradle Build caches for restoring
+              command: |
+                [ -d ~/gradle-build-caches ] &&
+                  [ -n "$(ls -A ~/gradle-build-caches)" ] &&
+                  rm -rf ~/.gradle/caches/build-cache-* &&
+                  mkdir -p ~/.gradle/caches/ &&
+                  mv ~/gradle-build-caches/* ~/.gradle/caches/ || true
           # download and cache dependencies and Gradle
           - run:
               name: Downloading Gradle Dependencies
               command: "cd <<parameters.project_path>> && ./gradlew --max-workers 2 downloadDependencies"
-          - save_cache: *save-gradle-wrapper-cache
-          - save_cache: *save-gradle-home-caches
+          - save_cache:
+              name: Saving Gradle wrapper cache
+              paths:
+                - ~/.gradle/wrapper/
+              key: v1-gradle-wrapper-{{ checksum "example/android/gradle/wrapper/gradle-wrapper.properties" }}
+          - save_cache:
+              name: Saving Gradle home cache
+              paths:
+                - ~/.gradle/caches/
+              key: v1-gradle-home-cache-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}
           - run:
               name: Build Android Debug APK
               command: "cd <<parameters.project_path>> && chmod +x gradlew && ./gradlew --build-cache --max-workers 2 --continue assemble<<parameters.app_build_type>> assembleAndroidTest -DtestBuildType=<<parameters.test_build_type>> --stacktrace"
-          - run: *collect-gradle-build-caches
-          - save_cache: *save-gradle-debug-build-cache
+          - run:
+              name: Collecting Gradle Build caches for saving
+              command: |
+                mkdir -p ~/gradle-build-caches
+                [ -d ~/.gradle/caches ] &&
+                  [ -n "$(ls -Ad ~/.gradle/caches/build-cache-* 2>/dev/null)" ] &&
+                  rm -rf ~/gradle-build-caches/* &&
+                  mv ~/.gradle/caches/build-cache-* ~/gradle-build-caches || true
+              when: always
+          - save_cache:
+              name: Saving Gradle Build caches
+              paths:
+                - ~/gradle-build-caches
+              key: v1-gradle-debug-build-cache-{{ .Revision }}
+              when: always
           - persist_to_workspace:
               root: ~/project
               paths:
@@ -469,8 +376,9 @@ orbs:
           xcode: '10.1.0'
 
 # -------------------------
-#        WORK FLOWS
+#        WORKFLOWS
 # -------------------------
+
 workflows:
   test:
     jobs:
