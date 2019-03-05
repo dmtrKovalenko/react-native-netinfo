@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  rn: react-native-community/react-native@dev:matt-oakes2
+  rn: react-native-community/react-native@dev:0.1.0-rc3
 
 jobs:
   checkout_code:
@@ -47,8 +47,7 @@ jobs:
       - rn/yarn_install
       - rn/android_build:
           project_path: "example/android"
-          app_build_type: Debug
-          test_build_type: debug
+          build_type: debug
       - persist_to_workspace:
           root: .
           paths:
@@ -61,8 +60,7 @@ jobs:
       - rn/yarn_install
       - rn/android_build:
           project_path: "example/android"
-          app_build_type: Release
-          test_build_type: release
+          build_type: release
       - persist_to_workspace:
           root: .
           paths:
