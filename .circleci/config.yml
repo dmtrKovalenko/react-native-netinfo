@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  rn: react-native-community/react-native@dev:matt-oakes
+  rn: react-native-community/react-native@dev:matt-oakes2
 
 jobs:
   checkout_code:
@@ -116,26 +116,27 @@ workflows:
   test:
     jobs:
       - checkout_code
-      - analyse:
-          requires:
-            - checkout_code
-      - build_android_debug:
-          requires:
-            - analyse
+      # - analyse:
+      #     requires:
+      #       - checkout_code
+      # - build_android_debug:
+      #     requires:
+      #       - analyse
       - build_android_release:
           requires:
-            - analyse
+            - checkout_code
+            # - analyse
       - test_android_e2e:
           requires:
             - build_android_release
-      - test_ios_e2e:
-          requires:
-            - analyse
-      - publish:
-          requires:
-            - analyse
-            - test_android_e2e
-            - test_ios_e2e
-          filters:
-            branches:
-              only: master
+      # - test_ios_e2e:
+      #     requires:
+      #       - analyse
+      # - publish:
+      #     requires:
+      #       - analyse
+      #       - test_android_e2e
+      #       - test_ios_e2e
+      #     filters:
+      #       branches:
+      #         only: master
